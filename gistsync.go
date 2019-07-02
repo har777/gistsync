@@ -14,7 +14,8 @@ import (
 
 // Gist structure
 type Gist struct {
-	GitPullURL string `json:"git_pull_url"`
+	GitPullURL  string `json:"git_pull_url"`
+	Description string `json:"description"`
 }
 
 func main() {
@@ -46,7 +47,17 @@ func main() {
 	log.Println("Syncing ", len(gists), " gists")
 
 	for _, gist := range gists {
-		repoName := gist.GitPullURL[strings.LastIndex(gist.GitPullURL, "/")+1 : strings.LastIndex(gist.GitPullURL, ".git")]
+		description := gist.Description
+		description = strings.Replace(description, " ", "-", -1)
+		description = strings.Replace(description, ".", "", -1)
+
+		defaultRepoName := gist.GitPullURL[strings.LastIndex(gist.GitPullURL, "/")+1 : strings.LastIndex(gist.GitPullURL, ".git")]
+		var repoName string
+		if description != "" {
+			repoName = fmt.Sprintf("%s:%s", description, defaultRepoName)
+		} else {
+			repoName = defaultRepoName
+		}
 		repoFolder := filepath.Join(syncFolder, repoName)
 
 		if _, err := os.Stat(repoFolder); err == nil {
@@ -59,7 +70,7 @@ func main() {
 			}
 		} else {
 			log.Println("Cloning: ", repoName)
-			cmd := exec.Command("git", "clone", gist.GitPullURL)
+			cmd := exec.Command("git", "clone", gist.GitPullURL, repoName)
 			cmd.Dir = syncFolder
 			err := cmd.Run()
 			if err != nil {
